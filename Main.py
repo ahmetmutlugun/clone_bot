@@ -23,17 +23,51 @@ async def ping(ctx):
 
 @client.event
 async def on_message(ctx):
-    with open("messages.txt", "a") as file:
-        file.write(str(ctx.author.id) + ": " + ctx.content + "\n")
+    if check_user(str(ctx.author.id)) and "-train off" not in ctx.content:
+        with open("messages.txt", "a") as f:
+            f.write(str(ctx.author.id) + ": " + ctx.content + "\n")
     await client.process_commands(ctx)
 
 
-@client.command()
-async def train(ctx):
-    with open("whitelist.txt", "a") as file:
-        file.write(str(ctx.author.id) + "\n")
+@client.command(brief='Turn on or off the AI training.')
+async def train(ctx, preference):
+    if preference is None:
+        await ctx.send("Please pick \"on\" or \"off\" to train the bot.")
+        return
+    if preference.lower() == "off":
+        remove_user(str(ctx.author.id))
+        await ctx.send("Your messages will no longer be recorded.")
+        return
+    elif preference.lower() == "on":
+        add_user(str(ctx.author.id))
+        await ctx.send("Your messages will now be used to train this bot.")
+        return
 
 
-file = open("discord.key", "r")
-token = file.read()
+def add_user(author_id):
+    if not check_user(author_id):
+        with open("whitelist.txt", "a") as f:
+            f.write(str(author_id) + "\n")
+
+
+def remove_user(author_id):
+    with open("whitelist.txt", "r") as f:
+        lines = f.readlines()
+    with open("whitelist.txt", "w") as f:
+        for line in lines:
+            if line.strip("\n") != author_id:
+                f.write(line)
+
+
+def check_user(author_id):
+    f = open("whitelist.txt", "r")
+    data = f.read()
+    f.close()
+    if author_id not in data:
+        return False
+    return True
+
+
+fl = open("discord.key", "r")
+token = fl.read()
 client.run(token)
